@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +13,15 @@ namespace imgpaste
     class ImagePaste : IDisposable
     {
         Image _image = null;
+        static readonly ImageFormat DefaultFormat = ImageFormat.Png;
+        static readonly Dictionary<string, ImageFormat> FormatDictionary = new Dictionary<string, ImageFormat>(StringComparer.InvariantCultureIgnoreCase)
+        {
+            { ".bmp", ImageFormat.Bmp },
+            { ".gif", ImageFormat.Gif },
+            { ".jpeg", ImageFormat.Jpeg },
+            { ".jpg", ImageFormat.Jpeg },
+            { ".png", ImageFormat.Png },
+        };
 
         public void Capture()
         {
@@ -38,7 +49,23 @@ namespace imgpaste
                 throw new InvalidOperationException("No image has been captured! Use the Capture() method before calling SaveAs()!");
             }
 
-            _image.Save(path);
+            var imgFormat = SelectFormat(path);
+            _image.Save(path, imgFormat);
+        }
+
+        private ImageFormat SelectFormat(string filename)
+        {
+            var ext = Path.GetExtension(filename);
+
+            if (!string.IsNullOrWhiteSpace(ext))
+            {
+                if (FormatDictionary.TryGetValue(ext, out var format))
+                {
+                    return format;
+                }
+            }
+
+            return DefaultFormat;
         }
 
         public void Dispose()
