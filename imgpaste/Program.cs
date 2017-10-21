@@ -10,9 +10,9 @@ namespace imgpaste
     {
         static async Task<int> Main(string[] args)
         {
-            if (args.Length != 1)
+            if (args.Length == 0)
             {
-                await Console.Error.WriteLineAsync("USAGE: imgpaste.exe screenshot.png");
+                await Console.Error.WriteLineAsync("USAGE: imgpaste.exe screenshot.png [file2.jpg ..]");
                 return -1;
             }
 
@@ -20,7 +20,11 @@ namespace imgpaste
             {
                 var imgpaste = new ImagePaste();
                 imgpaste.Capture();
-                imgpaste.SaveAs(args[0]);
+
+                foreach (var dest in args)
+                {
+                    imgpaste.SaveAs(dest);
+                }
             }
             catch (InvalidClipboardDataException ex)
             {
