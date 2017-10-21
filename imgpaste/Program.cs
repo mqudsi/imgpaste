@@ -17,12 +17,14 @@ namespace imgpaste
 
             try
             {
-                var imgpaste = new ImagePaste();
-                imgpaste.Capture();
-
-                foreach (var dest in outputs)
+                using (var imgpaste = new ImagePaste())
                 {
-                    imgpaste.SaveAs(dest);
+                    imgpaste.Capture();
+
+                    foreach (var dest in outputs)
+                    {
+                        imgpaste.SaveAs(dest);
+                    }
                 }
             }
             catch (InvalidClipboardDataException ex)
