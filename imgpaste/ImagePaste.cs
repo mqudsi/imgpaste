@@ -25,9 +25,10 @@ namespace imgpaste
 
         public void Capture()
         {
-            //Clipboard.ContainsImage() is always returning false
-            //we've verified clipboard contains CF_BITMAP, CF_DIB, and CF_DIBv5
-            //Clipboard.GetDataObject() always returns null, too!
+            //The "real"/system Clipboard.ContainsImage() is always returning false
+            //We've verified clipboard contains CF_BITMAP, CF_DIB, and CF_DIBv5
+            //and Clipboard.GetDataObject() always returns null, too!
+            //See https://www.youtube.com/watch?v=HkIuXQytmOA for reference
 
             using (var clipboard = new Clipboard())
             {
