@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using Clipboard = imgpaste.Win32Clipboard;
-using PixelFormat = SixLabors.ImageSharp.PixelFormats.Rgb24;
+using PixelFormat = SixLabors.ImageSharp.Rgba32;
 
 namespace imgpaste
 {
@@ -28,8 +28,7 @@ namespace imgpaste
             public static IImageEncoder Png => new PngEncoder()
             {
                 CompressionLevel = 9,
-                //PngColorType = PngColorType.Palette,
-                PngColorType = PngColorType.RgbWithAlpha,
+                PngColorType = PngColorType.Palette,
             };
         }
         SixLabors.ImageSharp.Image<PixelFormat> _image = null;
