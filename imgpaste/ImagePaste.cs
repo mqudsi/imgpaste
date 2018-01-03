@@ -1,26 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using Clipboard = imgpaste.Win32Clipboard;
+using PixelFormat = SixLabors.ImageSharp.PixelFormats.Rgb24;
 
 namespace imgpaste
 {
     class ImagePaste : IDisposable
     {
-        Image _image = null;
-        static readonly ImageFormat DefaultFormat = ImageFormat.Png;
-        static readonly Dictionary<string, ImageFormat> FormatDictionary = new Dictionary<string, ImageFormat>(StringComparer.InvariantCultureIgnoreCase)
+        static class Encoders
         {
-            { ".bmp", ImageFormat.Bmp },
-            { ".gif", ImageFormat.Gif },
-            { ".jpeg", ImageFormat.Jpeg },
-            { ".jpg", ImageFormat.Jpeg },
-            { ".png", ImageFormat.Png },
+            public static IImageEncoder Bmp => new BmpEncoder();
+            public static IImageEncoder Gif => new GifEncoder();
+            public static IImageEncoder Jpeg => new JpegEncoder()
+            {
+                Quality = 90
+            };
+            public static IImageEncoder Png => new PngEncoder()
+            {
+                CompressionLevel = 9,
+                //PngColorType = PngColorType.Palette,
+                PngColorType = PngColorType.RgbWithAlpha,
+            };
+        }
+        SixLabors.ImageSharp.Image<PixelFormat> _image = null;
+        static readonly IImageFormat DefaultFormat = ImageFormats.Png;
+        static readonly Dictionary<string, Func<IImageEncoder>> EncoderDictionary = new Dictionary<string, Func<IImageEncoder>>(StringComparer.InvariantCultureIgnoreCase)
+        {
+            { ".bmp", () => Encoders.Bmp },
+            { ".gif", () => Encoders.Gif },
+            { ".jpeg", () => Encoders.Jpeg },
+            { ".jpg", () => Encoders.Jpeg },
+            { ".png", () => Encoders.Png },
         };
 
         public void Capture()
@@ -38,7 +58,13 @@ namespace imgpaste
                 }
 
                 var hBitmap = clipboard.GetData(Clipboard.Format.CF_BITMAP);
-                _image = Image.FromHbitmap(hBitmap);
+                using (var sdImage = System.Drawing.Image.FromHbitmap(hBitmap))
+                using (var mstream = new MemoryStream())
+                {
+                    sdImage.Save(mstream, System.Drawing.Imaging.ImageFormat.Bmp);
+                    mstream.Seek(0, SeekOrigin.Begin);
+                    _image = Image.Load<PixelFormat>(mstream);
+                }
             }
         }
 
@@ -49,23 +75,27 @@ namespace imgpaste
                 throw new InvalidOperationException("No image has been captured! Use the Capture() method before calling SaveAs()!");
             }
 
-            var imgFormat = SelectFormat(path);
-            _image.Save(path, imgFormat);
+            var encoder = SelectEncoder(path);
+
+            using (var outFile = System.IO.File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                _image.Save(outFile, encoder);
+            }
         }
 
-        private ImageFormat SelectFormat(string filename)
+        private IImageEncoder SelectEncoder(string filename)
         {
             var ext = Path.GetExtension(filename);
 
             if (!string.IsNullOrWhiteSpace(ext))
             {
-                if (FormatDictionary.TryGetValue(ext, out var format))
+                if (EncoderDictionary.TryGetValue(ext, out var encoderGenerator))
                 {
-                    return format;
+                    return encoderGenerator();
                 }
             }
 
-            return DefaultFormat;
+            return Encoders.Png;
         }
 
         public void Dispose()
